@@ -13,4 +13,10 @@ datasource db {
 model Todo {
   id      Int    @id @default(autoincrement())
   content String
+  status  Status @default(TODO)
+}
+
+enum Status {
+  DONE
+  TODO
 }

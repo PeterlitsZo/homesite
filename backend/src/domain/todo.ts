@@ -5,14 +5,22 @@ interface TextTodoContent {
   text: string;
 };
 
+export type TodoStatus = 'TODO' | 'DONE';
+
 export class Todo {
   id: string;
+  status: TodoStatus;
   content: TodoContent;
 
-  constructor(id: string, content: TodoContent) {
+  constructor(id: string, status: TodoStatus, content: TodoContent) {
     this.id = id;
+    this.status = status;
     this.content = content;
   }
+}
+
+export type TodoPatch = {
+  status: TodoStatus;
 }
 
 export interface TodoRepo {
@@ -20,6 +28,7 @@ export interface TodoRepo {
   listTodos(): Promise<Todo[]>;
   addTodo(content: TodoContent): Promise<Todo>;
   removeTodo(id: string): Promise<void>;
+  updateTodo(id: string, patch: TodoPatch): Promise<Todo>;
 }
 
 export class TodoManager {
@@ -43,5 +52,9 @@ export class TodoManager {
 
   async removeTodo(id: string) {
     return this.repo.removeTodo(id);
+  }
+
+  async updateTodo(id: string, patch: TodoPatch): Promise<Todo> {
+    return this.repo.updateTodo(id, patch);
   }
 }

@@ -73,6 +73,16 @@ app.delete('/api/v1/todos/:id', async (c) => {
   return c.json(null);
 });
 
+app.patch('/api/v1/todos/:id', async (c) => {
+  const todoPatchSchema = z.object({
+    status: z.union([z.literal('TODO'), z.literal('DONE')]),
+  });
+
+  let todoPatch = await safeGetJsonBody(c, todoPatchSchema);
+  let todo = await todoManager.updateTodo(c.req.param('id'), todoPatch);
+  return c.json(todo);
+})
+
 app.onError((err, c) => {
   console.error(err); // TODO (@PeterlitsZo) Using logging library.
 
