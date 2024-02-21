@@ -10,16 +10,32 @@ export class TodoRepo implements DomainTodoRepo {
     this.client = new PrismaClient();
   }
 
+  async getTodo(id: string): Promise<Todo | null> {
+    const todo = await this.client.todo.findFirst({ where: { id: JSON.parse(id) } });
+    if (!todo) {
+      return null;
+    }
+
+    return new Todo(JSON.stringify(todo.id), { type: 'text', text: todo.content });
+  }
+
+  async listTodos(): Promise<Todo[]> {
+    const todos = await this.client.todo.findMany();
+    return todos.map(todo => {
+      return new Todo(JSON.stringify(todo.id), { type: 'text', text: todo.content });
+    });
+  }
+
   async addTodo(content: TodoContent): Promise<Todo> {
     const todo = await this.client.todo.create({
       data: {
         content: content.text,
       }
     })
-    console.log(todo);
+    return new Todo(JSON.stringify(todo.id), { type: 'text', text: todo.content });
+  }
 
-    const result = new Todo();
-    // result.content = content;
-    return result;
+  async removeTodo(id: string) {
+    await this.client.todo.delete({ where: { id: JSON.parse(id) }});
   }
 }
