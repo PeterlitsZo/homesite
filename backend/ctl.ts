@@ -17,16 +17,20 @@ async function runPostgresInDocker() {
   await $`
     docker run --rm \
       --name ${containerName} \
-      -e POSTGRES_PASSWORD=dev_password \
-      -v ./.dev_tmp/postgres_data:/var/lib/postgresql/data \
-      -p 5432:5432 \
+      -e POSTGRES_PASSWORD=${Bun.env.DATABASE_PASSWORD} \
+      -v ${Bun.env.DATABASE_VOLUME}:/var/lib/postgresql/data \
+      -p ${Bun.env.DATABASE_PORT}:5432 \
       -d \
       postgres
   `
 }
 
-async function dbMigrate(name: string) {
+async function addDbMigrate(name: string) {
   await $`bun x prisma migrate dev --name ${name}`
+}
+
+async function deployDbMigrate() {
+  await $`bun x prisma migrate deploy`
 }
 
 let devCommand = program.command('dev');
@@ -36,9 +40,14 @@ devCommand
     await runPostgresInDocker();
   });
 devCommand
-  .command('db-migrate <name>')
+  .command('add-db-migrate <name>')
   .action(async (name) => {
-    await dbMigrate(name);
+    await addDbMigrate(name);
+  })
+devCommand
+  .command('deploy-db-migrate')
+  .action(async () => {
+    await deployDbMigrate();
   })
 
 program.parse(Bun.argv);

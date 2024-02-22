@@ -1,7 +1,14 @@
 import { Todo } from "~/domain/todo";
 
-// TODO (@Peterlits) Use different baseUrl when the environment is different.
-const baseUrl: string = 'http://localhost:3000'
+const baseUrl: string = (function () {
+  console.log('MODE', import.meta.env.MODE);
+  console.log('BASEURL', import.meta.env.VITE_PROD_API_BASEURL);
+
+  if (import.meta.env.MODE === "production") {
+    return import.meta.env.VITE_PROD_API_BASEURL;
+  }
+  return 'http://localhost:3000';
+})();
 
 export async function listTodos() {
   let resp = await fetch(`${baseUrl}/api/v1/todos`, {
