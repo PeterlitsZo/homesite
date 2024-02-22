@@ -1,0 +1,14 @@
+.App {
+  height: 100vh;
+  width: 100vw;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+
+  .TodoList {
+    border-left: 1px solid #ccc;
+    border-right: 1px solid #ccc;
+    height: 100%;
+    width: 40rem;
+  }
+}

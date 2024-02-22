@@ -23,3 +23,11 @@ export async function patchTodo(id: string, patch: TodoPatch) {
   });
   return await resp.json() as Todo;
 }
+
+export async function addTodo(todo: Todo['content']) {
+  let resp = await fetch(`${baseUrl}/api/v1/todos`, {
+    method: 'POST',
+    body: JSON.stringify(todo),
+  });
+  return await resp.json() as Todo;
+}

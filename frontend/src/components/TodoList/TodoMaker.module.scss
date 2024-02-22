@@ -1,0 +1,29 @@
+.TodoMaker {
+  position: relative;;
+
+  .Editor {
+    display: block;
+    background-color: #eee;
+    resize: none;
+    width: 100%;
+    height: 5rem;
+    padding: 0.5rem;
+    outline: none;
+  }
+
+  .Sender {
+    position: absolute;
+    right: 0.5rem;
+    bottom: 0.5rem;
+    padding: 0.25rem 0.5rem;
+    background-color: #ddd7;
+    color: #0007;
+    border-radius: 0.5rem;
+    cursor: pointer;
+
+    &:hover {
+      background-color: #ddd;
+      color: #000;
+    }
+  }
+}

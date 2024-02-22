@@ -1,20 +1,37 @@
 "use client";
 
-import { createResource } from "solid-js";
-import { Todo } from "~/domain/todo";
+import { createEffect, createResource, createSignal } from "solid-js";
+
 import { listTodos } from "~/requests";
+import { Todo } from "~/domain/todo";
+
 import { TodoItem } from "./TodoItem";
+import { TodoMaker } from "./TodoMaker";
+import styles from "./TodoList.module.scss";
 
-export function TodoList() {
+interface TodoListProps {
+  class?: string;
+}
+
+export function TodoList(props: TodoListProps) {
   const [data] = createResource(listTodos);
+  const [todoList, setTodoList] = createSignal([] as Todo[]);
 
-  console.log(data());
+  createEffect(() => {
+    if (data() !== undefined) {
+      setTodoList(data()!.list);
+    }
+  })
 
   return (
-    <div>
-      {data()?.list.map(todo => (
-        <TodoItem todo={todo} />
-      ))}
+    // TODO (@PeterlitsZo) Use library to concat those class string.
+    <div class={`${props.class} ${styles.TodoList}`}>
+      <div class={styles.Items}>
+        {todoList().map(todo => (
+          <TodoItem todo={todo} />
+        ))}
+      </div>
+      <TodoMaker setTodoList={setTodoList} />
     </div>
   );
 }
