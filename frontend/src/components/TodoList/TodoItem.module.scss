@@ -1,0 +1,25 @@
+.TodoItem {
+  display: flex;
+  align-items: center;
+  gap: 0.25em;
+  padding: 0.25rem;
+
+  .StatusButton {
+    display: flex;
+    align-items: center;
+    padding: 0.25rem;
+    border-radius: 0.25rem;
+    cursor: pointer;
+
+    &:hover {
+      background-color: #eee; // TODO (@PeterlitsZo) Use variable.
+    }
+
+    .StatusIcon {
+      display: flex;
+      align-items: center;
+      width: 1rem;
+      height: 1rem;
+    }
+  }
+}
