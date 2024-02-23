@@ -38,3 +38,12 @@ export async function addTodo(todo: Todo['content']) {
   });
   return await resp.json() as Todo;
 }
+
+export async function deleteTodo(id: string) {
+  let resp = await fetch(`${baseUrl}/api/v1/todos/${id}`, {
+    method: 'DELETE',
+  });
+  let result = await resp.json() as Todo;
+  console.log(result);
+  return result;
+}

@@ -1,28 +1,31 @@
 "use client"; // TODO (@PeterlitsZo) Check why we need this.
 
-import { CheckCircle, Circle } from 'lucide-solid';
+import { CheckCircle, Circle, Trash2 } from 'lucide-solid';
 
 import { Todo } from "~/domain/todo";
 
 import styles from './TodoItem.module.scss';
-import { TodoPatch, patchTodo } from '~/requests';
+import { TodoPatch, deleteTodo, patchTodo } from '~/requests';
 import { createSignal } from 'solid-js';
+import IconButton from '../IconButton';
 
 interface TodoProps {
   todo: Todo;
+  deleteMe: () => void;
 }
 
 export function TodoItem(props: TodoProps) {
   const [todo, setTodo] = createSignal(props.todo);
+  const [isHover, setHover] = createSignal(false);
 
   console.log('render TodoItem');
 
   let status = () => {
     switch (todo().status) {
       case 'DONE':
-        return <CheckCircle width='100%' height='100%' />;
+        return CheckCircle;
       case 'TODO':
-        return <Circle width='100%' height='100%' />;
+        return Circle;
     }
   };
   let togglePatch = (): TodoPatch => {
@@ -41,14 +44,18 @@ export function TodoItem(props: TodoProps) {
   };
 
   return (
-    <div class={styles.TodoItem}>
-      <button class={styles.StatusButton} onClick={toggle()}>
-        <div class={styles.StatusIcon}>
-          {status()}
-        </div>
-      </button>
-      <div>
+    <div
+      class={styles.TodoItem}
+      onPointerOver={() => setHover(true)}
+      onPointerLeave={() => setHover(false)}
+    >
+      <IconButton icon={status()} onClick={toggle()} />
+      <div class={styles.Content}>
         {todo().content.text}
+      </div>
+      {/* TODO (@PeterlitsZo) Use library */}
+      <div class={`${styles.Toolbar} ${isHover() ? styles.Hover : ''}`}>
+        <IconButton icon={Trash2} onClick={props.deleteMe} />
       </div>
     </div>
   )

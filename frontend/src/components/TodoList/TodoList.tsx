@@ -2,7 +2,7 @@
 
 import { createEffect, createResource, createSignal } from "solid-js";
 
-import { listTodos } from "~/requests";
+import { deleteTodo, listTodos } from "~/requests";
 import { Todo } from "~/domain/todo";
 
 import { TodoItem } from "./TodoItem";
@@ -27,9 +27,15 @@ export function TodoList(props: TodoListProps) {
     // TODO (@PeterlitsZo) Use library to concat those class string.
     <div class={`${props.class} ${styles.TodoList}`}>
       <div class={styles.Items}>
-        {todoList().map(todo => (
-          <TodoItem todo={todo} />
-        ))}
+        {todoList().map(todo => {
+          const deleteThisTodo = async () => {
+            await deleteTodo(todo.id);
+            setTodoList(todoList => todoList.filter(t => (t.id !== todo.id)));
+          };
+          return (
+            <TodoItem todo={todo} deleteMe={deleteThisTodo} />
+          );
+        })}
       </div>
       <TodoMaker setTodoList={setTodoList} />
     </div>
