@@ -5,11 +5,13 @@ import { Schema, ZodError, z } from 'zod';
 
 import { TodoManager } from './domain/todo';
 import { TodoRepo } from './infra/todo_repo';
+import { Database } from './infra/database';
 import { StatusCode } from 'hono/utils/http-status';
 
 const app = new Hono();
 
-const todoRepo = new TodoRepo();
+const database = new Database();
+const todoRepo = new TodoRepo(database);
 const todoManager = new TodoManager(todoRepo);
 
 class HandlableError extends Error {
@@ -108,6 +110,7 @@ app.patch('/api/v1/todos/:id', async (c) => {
 
   let todoPatch = await safeGetJsonBody(c, todoPatchSchema);
   let todo = await todoManager.updateTodo(c.req.param('id'), todoPatch);
+  console.log(todo);
   return c.json(todo);
 })
 

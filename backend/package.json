@@ -5,7 +5,7 @@
   },
   "dependencies": {
     "hono": "^4.0.5",
-    "postgres": "^3.4.3",
+    "surrealdb.js": "^0.11.0",
     "zod": "^3.22.4"
   },
   "devDependencies": {
