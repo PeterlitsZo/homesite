@@ -37,10 +37,9 @@ export function TodoItem(props: TodoProps) {
     }
   };
 
-  let toggle = () => async () => {
+  let toggle = async () => {
     let newTodo = await patchTodo(todo().id, togglePatch());
-    console.log(newTodo);
-    setTodo(() => newTodo);
+    setTodo(newTodo);
   };
 
   return (
@@ -49,7 +48,7 @@ export function TodoItem(props: TodoProps) {
       onPointerOver={() => setHover(true)}
       onPointerLeave={() => setHover(false)}
     >
-      <IconButton icon={status()} onClick={toggle()} />
+      <IconButton icon={status()} onClick={toggle} />
       <div class={styles.Content}>
         {todo().content.text}
       </div>

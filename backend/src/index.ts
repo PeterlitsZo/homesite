@@ -110,7 +110,21 @@ app.patch('/api/v1/todos/:id', async (c) => {
 
   let todoPatch = await safeGetJsonBody(c, todoPatchSchema);
   let todo = await todoManager.updateTodo(c.req.param('id'), todoPatch);
-  console.log(todo);
+  return c.json(todo);
+})
+
+app.post(`/api/v1/todos/:id/\:reorder`, async (c) => {
+  const reorderTodoSchema = z.object({
+    aim_parent_id: z.string(),
+    index: z.number(),
+  });
+
+  let reorderTodoReq = await safeGetJsonBody(c, reorderTodoSchema);
+  let todo = await todoManager.reorderTodo(
+    c.req.param('id'),
+    reorderTodoReq.aim_parent_id,
+    reorderTodoReq.index
+  );
   return c.json(todo);
 })
 
