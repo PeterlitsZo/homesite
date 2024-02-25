@@ -1,0 +1,16 @@
+.DragAimBar {
+  display: flex;
+  align-items: center;
+  height: 0;
+  width: 100%;
+  pointer-events: none;
+
+  .Inner {
+    height: 0.25rem;
+    width: 100%;
+
+    &.Active {
+      background-color: blue; // TODO (@PeterlitsZo) Use color variable.
+    }
+  }
+}

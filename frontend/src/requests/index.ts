@@ -47,3 +47,14 @@ export async function deleteTodo(id: string) {
   console.log(result);
   return result;
 }
+
+export async function reorderTodo(id: string, index: number) {
+  console.log(id, index);
+  await fetch(`${baseUrl}/api/v1/todos/${id}/:reorder`, {
+    method: 'POST',
+    body: JSON.stringify({
+      index,
+      aim_parent_id: 'todo_root:default',
+    }),
+  });
+}

@@ -1,21 +1,25 @@
 "use client";
 
-import { createEffect, createResource, createSignal } from "solid-js";
+import { createEffect, createResource, createSignal, from } from "solid-js";
 
-import { deleteTodo, listTodos } from "~/requests";
+import { deleteTodo, listTodos, reorderTodo } from "~/requests";
 import { Todo } from "~/domain/todo";
 
 import { TodoItem } from "./TodoItem";
 import { TodoMaker } from "./TodoMaker";
 import styles from "./TodoList.module.scss";
+import { DragAimBar } from "./DragAimBar";
 
 interface TodoListProps {
   class?: string;
 }
 
 export function TodoList(props: TodoListProps) {
-  const [data] = createResource(listTodos);
+  const [data, { refetch }] = createResource(listTodos);
   const [todoList, setTodoList] = createSignal([] as Todo[]);
+  const [dragAimIndex, setDragAimIndex] = createSignal(-1);
+  const [draggingIndex, setDraggingIndex] = createSignal(-1);
+  const [dragStatus, setDragStatus] = createSignal('NOT_OVER');
 
   createEffect(() => {
     if (data() !== undefined) {
@@ -23,17 +27,93 @@ export function TodoList(props: TodoListProps) {
     }
   })
 
+  const dropHandler = (i: number) => async (event: DragEvent) => {
+    let aimIndex = dragAimIndex();
+    const fromIndex = draggingIndex();
+    console.log('DROP', aimIndex, fromIndex);
+    if (aimIndex === fromIndex || aimIndex === fromIndex + 1 || aimIndex === -1 || fromIndex === -1) {
+      // Do nothing...
+    } else {
+      // TODO (@PeterlitsZo) Looks like that it should be handled by backend.
+      if (aimIndex > fromIndex) {
+        aimIndex = aimIndex - 1;
+      }
+      await reorderTodo(todoList()[fromIndex].id, aimIndex);
+      await refetch();
+    }
+
+    setDragAimIndex(-1);
+
+    event.preventDefault();
+  };
+
+  const dragStartHandler = (i: number) => (event: DragEvent) => {
+    setDraggingIndex(i);
+  }
+
+  const dragEndHandler = (i: number) => (event: DragEvent) => {
+    setDraggingIndex(-1);
+  }
+
+  const dragOverHandler = (i: number) => (e: DragEvent) => {
+    setDragStatus('OVER');
+
+    let rect = (e.currentTarget! as HTMLDivElement).getBoundingClientRect();
+    if (
+      e.clientY < rect.top + rect.height / 4
+      || (i === 0 && e.clientY < rect.top + rect.height * 3 / 8)
+    ) {
+      setDragAimIndex(i);
+    } else if (
+      e.clientY > rect.bottom - rect.height / 4
+      || (i === todoList().length - 1 && e.clientY < rect.bottom - rect.height * 3 / 8)
+    ) {
+      setDragAimIndex(i + 1);
+    } else {
+      setDragAimIndex(-1);
+    }
+
+    e.preventDefault();
+  };
+
+  const dragLeaveHandler = (i: number) => (e: DragEvent) => {
+    setDragStatus('MAYBE_LEAVE');
+    setTimeout(() => {
+      if (dragStatus() === 'MAYBE_LEAVE') {
+        setDragStatus('NOT_OVER');
+        setDragAimIndex(-1);
+      }
+    }, 50);
+
+    e.preventDefault();
+  }
+
   return (
     // TODO (@PeterlitsZo) Use library to concat those class string.
     <div class={`${props.class} ${styles.TodoList}`}>
       <div class={styles.Items}>
-        {todoList().map(todo => {
+        {todoList().map((todo, i, todoList) => {
           const deleteThisTodo = async () => {
             await deleteTodo(todo.id);
             setTodoList(todoList => todoList.filter(t => (t.id !== todo.id)));
           };
           return (
-            <TodoItem todo={todo} deleteMe={deleteThisTodo} />
+            <>
+              <DragAimBar active={dragAimIndex() === i && dragStatus() !== 'NOT_OVER'} />
+              <div
+                draggable="true"
+                onDragStart={dragStartHandler(i)}
+                onDragEnd={dragEndHandler(i)}
+                onDragOver={dragOverHandler(i)}
+                onDragLeave={dragLeaveHandler(i)}
+                onDrop={dropHandler(i)}
+              >
+                <TodoItem todo={todo} deleteMe={deleteThisTodo} />
+              </div>
+              { i === todoList.length - 1
+                ? <DragAimBar active={dragAimIndex() === i + 1 && dragStatus() !== 'NOT_OVER'} />
+                : null }
+            </>
           );
         })}
       </div>
