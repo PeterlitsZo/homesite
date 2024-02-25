@@ -35,6 +35,6 @@ COPY --from=prerelease /usr/src/app/backend/ ./backend/
 COPY ./docker.entry.ts .
 
 USER bun
-EXPOSE 3000/tcp
+EXPOSE 8000/tcp
 ENTRYPOINT [ "bun", "run", "docker.entry.ts" ]
 

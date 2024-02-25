@@ -17,6 +17,7 @@ export class Database {
       username: Bun.env.SURREAL_USERNAME,
       password: Bun.env.SURREAL_PASSWORD,
     };
+    console.log(config);
     const configSchema = z.object({
       url: z.string(),
       namespace: z.string(),

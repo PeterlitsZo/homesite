@@ -28,3 +28,11 @@ homesite.peterlits.com {
     }
 }
 ```
+
+## Run by Docker
+
+```
+$ docker build -t homesite .
+# Remove the flag about host network
+$ docker run --net host --env-file=<your-env-file> homesite
+```
