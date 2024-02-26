@@ -128,4 +128,9 @@ app.post(`/api/v1/todos/:id/\:reorder`, async (c) => {
   return c.json(todo);
 })
 
-export default app;
+console.log('port', JSON.parse(Bun.env.API_HTTP_PORT));
+
+export default {
+  port: JSON.parse(Bun.env.API_HTTP_PORT),
+  fetch: app.fetch,
+};

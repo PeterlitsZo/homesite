@@ -9,6 +9,7 @@ netlify
 
 # Environment
 .env
+.env.production
 .env*.local
 
 # dependencies

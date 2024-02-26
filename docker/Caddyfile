@@ -1,0 +1,9 @@
+http://:8999 {
+    handle /api/v1/* {
+        reverse_proxy localhost:8000
+    }
+
+    handle {
+        reverse_proxy localhost:8001
+    }
+}

@@ -1,17 +1,17 @@
 import { Todo } from "~/domain/todo";
 
-const baseUrl: string = (function () {
-  console.log('MODE', import.meta.env.MODE);
-  console.log('BASEURL', import.meta.env.VITE_PROD_API_BASEURL);
-
+const baseUrl = () => {
+  if (import.meta.env.SSR) {
+    return 'http://localhost:8000'; // TODO (@PeterlitsZo) Reading from env variable.
+  }
   if (import.meta.env.MODE === "production") {
     return import.meta.env.VITE_PROD_API_BASEURL;
   }
   return 'http://localhost:3000';
-})();
+};
 
 export async function listTodos() {
-  let resp = await fetch(`${baseUrl}/api/v1/todos`, {
+  let resp = await fetch(`${baseUrl()}/api/v1/todos`, {
     method: 'GET',
   });
   return await resp.json() as {
@@ -24,7 +24,7 @@ export interface TodoPatch {
 }
 
 export async function patchTodo(id: string, patch: TodoPatch) {
-  let resp = await fetch(`${baseUrl}/api/v1/todos/${id}`, {
+  let resp = await fetch(`${baseUrl()}/api/v1/todos/${id}`, {
     method: 'PATCH',
     body: JSON.stringify(patch),
   });
@@ -32,7 +32,7 @@ export async function patchTodo(id: string, patch: TodoPatch) {
 }
 
 export async function addTodo(todo: Todo['content']) {
-  let resp = await fetch(`${baseUrl}/api/v1/todos`, {
+  let resp = await fetch(`${baseUrl()}/api/v1/todos`, {
     method: 'POST',
     body: JSON.stringify(todo),
   });
@@ -40,7 +40,7 @@ export async function addTodo(todo: Todo['content']) {
 }
 
 export async function deleteTodo(id: string) {
-  let resp = await fetch(`${baseUrl}/api/v1/todos/${id}`, {
+  let resp = await fetch(`${baseUrl()}/api/v1/todos/${id}`, {
     method: 'DELETE',
   });
   let result = await resp.json() as Todo;
@@ -50,7 +50,7 @@ export async function deleteTodo(id: string) {
 
 export async function reorderTodo(id: string, index: number) {
   console.log(id, index);
-  await fetch(`${baseUrl}/api/v1/todos/${id}/:reorder`, {
+  await fetch(`${baseUrl()}/api/v1/todos/${id}/:reorder`, {
     method: 'POST',
     body: JSON.stringify({
       index,
