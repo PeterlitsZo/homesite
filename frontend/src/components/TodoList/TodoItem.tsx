@@ -48,8 +48,8 @@ export function TodoItem(props: TodoProps) {
       onPointerOver={() => setHover(true)}
       onPointerLeave={() => setHover(false)}
     >
-      <IconButton icon={status()} onClick={toggle} />
-      <div class={styles.Content}>
+      <IconButton icon={status()} onClick={toggle} class={todo().status === 'DONE' ? styles.Done : ''} />
+      <div class={`${styles.Content} ${todo().status === 'DONE' ? styles.Done : ''}`}>
         {todo().content.text}
       </div>
       {/* TODO (@PeterlitsZo) Use library */}
