@@ -1,10 +1,10 @@
 import { Todo } from "~/domain/todo";
 
 const baseUrl = () => {
-  if (import.meta.env.SSR) {
-    return 'http://localhost:8000'; // TODO (@PeterlitsZo) Reading from env variable.
-  }
   if (import.meta.env.MODE === "production") {
+    if (import.meta.env.SSR) {
+      return 'http://localhost:8000'; // TODO (@PeterlitsZo) Reading from env variable.
+    }
     return import.meta.env.VITE_PROD_API_BASEURL;
   }
   return 'http://localhost:3000';
