@@ -1,8 +1,10 @@
 .TodoList {
   display: flex;
   flex-direction: column;
+  height: 100%;
 
   .Items {
     flex: 1;
+    overflow: scroll;
   }
 }
