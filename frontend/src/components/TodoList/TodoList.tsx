@@ -14,18 +14,16 @@ interface TodoListProps {
   class?: string;
 }
 
-export function TodoList(props: TodoListProps) {
-  const [data, { refetch }] = createResource(listTodos);
-  const [todoList, setTodoList] = createSignal([] as Todo[]);
+interface TodoListInnerProps {
+  class?: string;
+  todos?: Todo[];
+  refetch: () => void;
+}
+
+function TodoListInner(props: TodoListInnerProps) {
   const [dragAimIndex, setDragAimIndex] = createSignal(-1);
   const [draggingIndex, setDraggingIndex] = createSignal(-1);
   const [dragStatus, setDragStatus] = createSignal('NOT_OVER');
-
-  createEffect(() => {
-    if (data() !== undefined) {
-      setTodoList(data()!.list);
-    }
-  })
 
   const dropHandler = (i: number) => async (event: DragEvent) => {
     let aimIndex = dragAimIndex();
@@ -38,8 +36,8 @@ export function TodoList(props: TodoListProps) {
       if (aimIndex > fromIndex) {
         aimIndex = aimIndex - 1;
       }
-      await reorderTodo(todoList()[fromIndex].id, aimIndex);
-      await refetch();
+      await reorderTodo(props.todos![fromIndex].id, aimIndex);
+      await props.refetch();
     }
 
     setDragAimIndex(-1);
@@ -66,7 +64,7 @@ export function TodoList(props: TodoListProps) {
       setDragAimIndex(i);
     } else if (
       e.clientY > rect.bottom - rect.height / 4
-      || (i === todoList().length - 1 && e.clientY < rect.bottom - rect.height * 3 / 8)
+      || (i === props.todos!.length - 1 && e.clientY < rect.bottom - rect.height * 3 / 8)
     ) {
       setDragAimIndex(i + 1);
     } else {
@@ -89,13 +87,11 @@ export function TodoList(props: TodoListProps) {
   }
 
   return (
-    // TODO (@PeterlitsZo) Use library to concat those class string.
-    <div class={`${props.class} ${styles.TodoList}`}>
       <div class={styles.Items}>
-        {todoList().map((todo, i, todoList) => {
+        {(props.todos ?? []).map((todo, i, todoList) => {
           const deleteThisTodo = async () => {
             await deleteTodo(todo.id);
-            setTodoList(todoList => todoList.filter(t => (t.id !== todo.id)));
+            props.refetch();
           };
           return (
             <>
@@ -109,6 +105,9 @@ export function TodoList(props: TodoListProps) {
                 onDrop={dropHandler(i)}
               >
                 <TodoItem todo={todo} deleteMe={deleteThisTodo} />
+                <div style={{ "padding-left": '1rem' }}>
+                  <TodoListInner todos={todo.todos} refetch={props.refetch} />
+                </div>
               </div>
               { i === todoList.length - 1
                 ? <DragAimBar active={dragAimIndex() === i + 1 && dragStatus() !== 'NOT_OVER'} />
@@ -117,6 +116,23 @@ export function TodoList(props: TodoListProps) {
           );
         })}
       </div>
+  );
+}
+
+export function TodoList(props: TodoListProps) {
+  const [data, { refetch }] = createResource(listTodos);
+  const [todoList, setTodoList] = createSignal([] as Todo[]);
+
+  createEffect(() => {
+    if (data() !== undefined) {
+      setTodoList(data()!.list);
+    }
+  })
+
+  return (
+    // TODO (@PeterlitsZo) Use library to concat those class string.
+    <div class={`${props.class} ${styles.TodoList}`}>
+      <TodoListInner todos={todoList()} class={props.class} refetch={refetch} />
       <TodoMaker setTodoList={setTodoList} />
     </div>
   );

@@ -49,16 +49,20 @@ async function safeGetJsonBody<T extends z.ZodRawShape>(c: Context, schema: z.Zo
   return result;
 }
 
-app.use(async (_, next) => {
+app.use(async (c, next) => {
   console.log('middleware 1 start')
   await next()
+  console.log(c.res.headers)
   console.log('middleware 1 end')
 })
 
 app.use(logger());
 
 // TODO (@PeterlitsZo) Only open CORS middleware when it is dev mode.
-app.use(cors());
+app.use(cors({
+  origin: '*',
+  allowMethods: ['GET', 'HEAD', 'PUT', 'POST', 'DELETE', 'PATCH'],
+}));
 
 app.onError((err, c) => {
   console.error(err); // TODO (@PeterlitsZo) Using logging library.

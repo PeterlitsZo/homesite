@@ -55,8 +55,31 @@ export class Migration {
     const db = await this.db.getInner();
 
     if (await this.getVersion() === 0) {
+      // VERSION 1:
+      //
+      // * Application can create record in table `todo`, it has:
+      //   * `id` field;
+      //   * `content` field: it is just a normal string;
+      //   * `parent_id` field: it must be "todo_root:default";
+      //   * `status` field: it must be "TODO" or "DONE";
+      // * There is also a table `todo_root`, it has just one record, which has
+      //   id "todo_root:default":
+      //   * `id` field;
+      //   * `todos` field: it is a array which contains all ids of those todo
+      //     records.
       await db.query(
         'CREATE todo_root:default SET todos = []'
+      );
+      await this.incrVersion();
+    }
+
+    if (await this.getVersion() === 1) {
+      // VERSION 2:
+      //
+      // * table `todo` will has a field `todos` (like table `todo_root` does).
+      //   It must be an array, which contains all ids of its sub todo records.
+      await db.query(
+        'UPDATE todo SET todos = []'
       );
       await this.incrVersion();
     }

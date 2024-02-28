@@ -4,7 +4,7 @@
     "serve": "bun run src/index.ts"
   },
   "dependencies": {
-    "hono": "^4.0.5",
+    "hono": "^4.0.7",
     "surrealdb.js": "^0.11.0",
     "zod": "^3.22.4"
   },
