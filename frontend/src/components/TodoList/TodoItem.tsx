@@ -11,6 +11,8 @@ import IconButton from '../IconButton';
 
 interface TodoProps {
   todo: Todo;
+  indent: number;
+  canDrop: boolean;
   deleteMe: () => void;
 }
 
@@ -44,12 +46,15 @@ export function TodoItem(props: TodoProps) {
 
   return (
     <div
-      class={styles.TodoItem}
+      class={`${styles.TodoItem} ${todo().status === 'DONE' ? styles.Done : ''} ${props.canDrop ? styles.CanDrop : ''}`}
+      style={{ "padding-left": `${props.indent}rem` }}
       onPointerOver={() => setHover(true)}
       onPointerLeave={() => setHover(false)}
     >
-      <IconButton icon={status()} onClick={toggle} class={todo().status === 'DONE' ? styles.Done : ''} />
-      <div class={`${styles.Content} ${todo().status === 'DONE' ? styles.Done : ''}`}>
+      <IconButton icon={status()} onClick={toggle} />
+      <div
+        class={styles.Content}
+      >
         {todo().content.text}
       </div>
       {/* TODO (@PeterlitsZo) Use library */}

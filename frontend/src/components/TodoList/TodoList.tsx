@@ -1,6 +1,6 @@
 "use client";
 
-import { createEffect, createResource, createSignal, from } from "solid-js";
+import { For, JSX, VoidComponent, createContext, createEffect, createResource, createSignal, from, useContext } from "solid-js";
 
 import { deleteTodo, listTodos, reorderTodo } from "~/requests";
 import { Todo } from "~/domain/todo";
@@ -9,6 +9,8 @@ import { TodoItem } from "./TodoItem";
 import { TodoMaker } from "./TodoMaker";
 import styles from "./TodoList.module.scss";
 import { DragAimBar } from "./DragAimBar";
+import { createStore } from "solid-js/store";
+import { Properties } from "solid-js/web";
 
 interface TodoListProps {
   class?: string;
@@ -17,58 +19,101 @@ interface TodoListProps {
 interface TodoListInnerProps {
   class?: string;
   todos?: Todo[];
+  parentId: string;
+  indent: number;
   refetch: () => void;
 }
 
+type DragState =
+  | { type: 'INIT', }
+  | { type: 'DRAGGING', fromId: string }
+  | { type: 'OK_TO_DROP', fromId: string, aimParentId: string, aimIndex: number }
+  ;
+
+type DragStateChanger = {
+  startDragging: (fromId: string) => void;
+  okToDrop: (aimParentId: string, aimIndex: number) => void;
+  notOkToDrop: () => void;
+  reset: () => void;
+}
+
+type TDragLayerContext = [DragState, DragStateChanger];
+
+const DragLayerContext = createContext<TDragLayerContext>();
+
 function TodoListInner(props: TodoListInnerProps) {
   const [dragAimIndex, setDragAimIndex] = createSignal(-1);
+  const [dragInsideIndex, setDragInsideIndex] = createSignal(-1);
   const [draggingIndex, setDraggingIndex] = createSignal(-1);
-  const [dragStatus, setDragStatus] = createSignal('NOT_OVER');
+  const [dragStatus, setDragStatus] = createSignal('NOT_OVER' as 'NOT_OVER' | 'OVER' | 'MAYBE_LEAVE');
+
+  const [state, { startDragging, okToDrop, notOkToDrop, reset }] = useContext(DragLayerContext)!;
+
+  const todos = () => {
+    return props.todos ?? [];
+  }
 
   const dropHandler = (i: number) => async (event: DragEvent) => {
-    let aimIndex = dragAimIndex();
-    const fromIndex = draggingIndex();
-    console.log('DROP', aimIndex, fromIndex);
-    if (aimIndex === fromIndex || aimIndex === fromIndex + 1 || aimIndex === -1 || fromIndex === -1) {
-      // Do nothing...
-    } else {
-      // TODO (@PeterlitsZo) Looks like that it should be handled by backend.
-      if (aimIndex > fromIndex) {
-        aimIndex = aimIndex - 1;
-      }
-      await reorderTodo(props.todos![fromIndex].id, aimIndex);
-      await props.refetch();
+    if (state.type !== 'OK_TO_DROP') {
+      throw new Error('Assert state is OK_TO_DROP');
     }
 
-    setDragAimIndex(-1);
+    if (state.fromId === state.aimParentId) {
+      reset();
+      return;
+    }
+
+    await reorderTodo(state.fromId, state.aimParentId, state.aimIndex);
+    await props.refetch();
+    reset();
 
     event.preventDefault();
   };
 
   const dragStartHandler = (i: number) => (event: DragEvent) => {
     setDraggingIndex(i);
+
+    startDragging(todos()[i].id);
   }
 
   const dragEndHandler = (i: number) => (event: DragEvent) => {
     setDraggingIndex(-1);
+
+    reset();
   }
 
   const dragOverHandler = (i: number) => (e: DragEvent) => {
     setDragStatus('OVER');
 
-    let rect = (e.currentTarget! as HTMLDivElement).getBoundingClientRect();
-    if (
-      e.clientY < rect.top + rect.height / 4
-      || (i === 0 && e.clientY < rect.top + rect.height * 3 / 8)
-    ) {
-      setDragAimIndex(i);
-    } else if (
-      e.clientY > rect.bottom - rect.height / 4
-      || (i === props.todos!.length - 1 && e.clientY < rect.bottom - rect.height * 3 / 8)
-    ) {
-      setDragAimIndex(i + 1);
+    const rect = (e.currentTarget! as HTMLDivElement).getBoundingClientRect();
+    const parentId = props.parentId;
+    const currentTodo = props.todos![i];
+    const currentId = currentTodo.id;
+    const hasChildren = currentTodo.todos.length !== 0;
+
+    function ofTop(ratio: number) {
+      return e.clientY < rect.top + rect.height * ratio;
+    }
+    function ofBottom(ratio: number) {
+      return e.clientY > rect.bottom - rect.height * ratio;
+    }
+    const isFirstChild = i === 0;
+    const isLastChild = i === props.todos!.length;
+
+    if (!hasChildren) {
+      if (ofTop(1/4) || (isFirstChild && ofTop(5/16))) {
+        okToDrop(parentId, i);
+      } else if (ofBottom(1/4) || (isLastChild && ofBottom(5/16))) {
+        okToDrop(parentId, i + 1);
+      } else {
+        okToDrop(currentId, 0);
+      }
     } else {
-      setDragAimIndex(-1);
+      if (ofTop(1/4) || (isFirstChild && ofTop(5/16))) {
+        okToDrop(parentId, i);
+      } else {
+        okToDrop(currentId, 0);
+      }
     }
 
     e.preventDefault();
@@ -79,7 +124,7 @@ function TodoListInner(props: TodoListInnerProps) {
     setTimeout(() => {
       if (dragStatus() === 'MAYBE_LEAVE') {
         setDragStatus('NOT_OVER');
-        setDragAimIndex(-1);
+        notOkToDrop();
       }
     }, 50);
 
@@ -87,36 +132,94 @@ function TodoListInner(props: TodoListInnerProps) {
   }
 
   return (
-      <div class={styles.Items}>
-        {(props.todos ?? []).map((todo, i, todoList) => {
-          const deleteThisTodo = async () => {
-            await deleteTodo(todo.id);
-            props.refetch();
-          };
-          return (
-            <>
-              <DragAimBar active={dragAimIndex() === i && dragStatus() !== 'NOT_OVER'} />
-              <div
-                draggable="true"
-                onDragStart={dragStartHandler(i)}
-                onDragEnd={dragEndHandler(i)}
-                onDragOver={dragOverHandler(i)}
-                onDragLeave={dragLeaveHandler(i)}
-                onDrop={dropHandler(i)}
-              >
-                <TodoItem todo={todo} deleteMe={deleteThisTodo} />
-                <div style={{ "padding-left": '1rem' }}>
-                  <TodoListInner todos={todo.todos} refetch={props.refetch} />
-                </div>
-              </div>
-              { i === todoList.length - 1
-                ? <DragAimBar active={dragAimIndex() === i + 1 && dragStatus() !== 'NOT_OVER'} />
-                : null }
-            </>
-          );
-        })}
-      </div>
+    <For each={todos()}>
+      {(todo, i) => {
+        const deleteThisTodo = async () => {
+          await deleteTodo(todo.id);
+          props.refetch();
+        };
+        return (
+          <>
+            <DragAimBar
+              indent={props.indent}
+              active={(
+                state.type === 'OK_TO_DROP'
+                && state.aimParentId === todo.parent_id
+                && state.aimIndex === i()
+                && dragStatus() !== 'NOT_OVER'
+              )}
+            />
+            <div
+              class={styles.Item}
+              draggable="true"
+              onDragStart={dragStartHandler(i())}
+              onDragEnd={dragEndHandler(i())}
+              onDragOver={dragOverHandler(i())}
+              onDragLeave={dragLeaveHandler(i())}
+              onDrop={dropHandler(i())}
+            >
+              {/*dragInsideIndex() === i() && <div class={styles.DragShadow}/>*/}
+              <TodoItem
+                todo={todo}
+                deleteMe={deleteThisTodo}
+                indent={props.indent}
+                canDrop={state.type === 'OK_TO_DROP' && state.aimParentId === todo.id && dragStatus() === 'OVER'}
+              />
+            </div>
+            <TodoListInner
+              todos={todo.todos}
+              refetch={props.refetch}
+              parentId={todo.id}
+              indent={props.indent + 1}
+            />
+            { i() === todos().length - 1
+              ? (
+                  <DragAimBar
+                    indent={props.indent}
+                    active={(
+                      state.type === 'OK_TO_DROP'
+                      && state.aimParentId === todo.parent_id
+                      && state.aimIndex === i() + 1
+                      && dragStatus() !== 'NOT_OVER'
+                    )} />
+                )
+              : null }
+          </>
+        );
+      }}
+    </For>
   );
+}
+
+interface DragLayerProps {
+  children: JSX.Element;
+}
+
+export function DragLayer(props: DragLayerProps) {
+  const [state, setState] = createStore({
+    type: 'INIT',
+  } as DragState);
+  const dragLayer = [
+    state,
+    {
+      startDragging(id: string) {
+        setState({ type: 'DRAGGING', fromId: id })
+      },
+      okToDrop(aimParentId: string, aimIndex: number) {
+        setState({ type: 'OK_TO_DROP', aimParentId, aimIndex });
+      },
+      notOkToDrop() {
+        setState({ type: 'DRAGGING' });
+      },
+      reset() { setState({ type: 'INIT' }) },
+    }
+  ] as TDragLayerContext;
+
+  return (
+    <DragLayerContext.Provider value={dragLayer}>
+      {props.children}
+    </DragLayerContext.Provider>
+  )
 }
 
 export function TodoList(props: TodoListProps) {
@@ -132,7 +235,17 @@ export function TodoList(props: TodoListProps) {
   return (
     // TODO (@PeterlitsZo) Use library to concat those class string.
     <div class={`${props.class} ${styles.TodoList}`}>
-      <TodoListInner todos={todoList()} class={props.class} refetch={refetch} />
+      <div class={styles.Items}>
+        <DragLayer>
+          <TodoListInner
+            todos={todoList()}
+            class={props.class}
+            refetch={refetch}
+            parentId="todo_root:default"
+            indent={0}
+          />
+        </DragLayer>
+      </div>
       <TodoMaker setTodoList={setTodoList} />
     </div>
   );

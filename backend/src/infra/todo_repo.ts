@@ -63,7 +63,7 @@ export class TodoRepo implements DomainTodoRepo {
       SELECT * FROM todo WHERE id IN $ids;
     `, { ids });
     let todoMap = new Map();
-    for (let i = 0; i < result.length; i++) {
+    for (let i = 0; i < result[0].length; i++) {
       todoMap.set(result[0][i].id, result[0][i]);
     }
     return Promise.all(ids.map(id => todoMap.get(id)).map(todo => toDomain(this, todo)));
@@ -137,13 +137,38 @@ export class TodoRepo implements DomainTodoRepo {
     `, { id });
   }
 
-  async removeTodoOnlyFromParent(id: string, parentId: string) {
+  async getTodoIndexInParent(id: string, parentId: string): Promise<number> {
     const db = await this.getDb();
 
-    await db.query(`
-      UPDATE $parentId
-        SET todos = array::remove(todos, array::find_index(todos, $id));
-    `, { parentId, id });
+    const tableName = parentId.split(':')[0];
+    let result = await db.query<[RawTodo[]]>(`
+      SELECT * FROM type::table($tableName) WHERE id = $parentId;
+    `, { parentId, tableName });
+
+    let result2 = -1;
+    console.log(parentId, tableName, result);
+    result[0][0].todos.forEach((v, i) => {
+      if (v === id) {
+        result2 = i;
+      }
+    })
+    return result2;
+  }
+
+  async removeTodoOnlyFromParent(id: string, parentId: string, index?: number) {
+    const db = await this.getDb();
+
+    if (index !== undefined) {
+      await db.query(`
+        UPDATE $parentId
+          SET todos = array::remove(todos, $index)
+      `, { parentId, index });
+    } else {
+      await db.query(`
+        UPDATE $parentId
+          SET todos = array::remove(todos, array::find_index(todos, $id));
+      `, { parentId, id });
+    }
   }
 
   async updateTodo(id: string, patch: TodoPatch): Promise<Todo> {

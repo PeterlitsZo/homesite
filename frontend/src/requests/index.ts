@@ -14,7 +14,9 @@ export async function listTodos() {
   let resp = await fetch(`${baseUrl()}/api/v1/todos`, {
     method: 'GET',
   });
-  return await resp.json() as {
+  let result = await resp.json();
+  console.log(result);
+  return result as {
     list: Todo[];
   };
 }
@@ -48,13 +50,13 @@ export async function deleteTodo(id: string) {
   return result;
 }
 
-export async function reorderTodo(id: string, index: number) {
+export async function reorderTodo(id: string, parentId: string, index: number) {
   console.log(id, index);
   await fetch(`${baseUrl()}/api/v1/todos/${id}/:reorder`, {
     method: 'POST',
     body: JSON.stringify({
       index,
-      aim_parent_id: 'todo_root:default',
+      aim_parent_id: parentId,
     }),
   });
 }

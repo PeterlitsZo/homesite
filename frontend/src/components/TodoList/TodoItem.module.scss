@@ -4,8 +4,12 @@
   gap: 0.25em;
   padding: 0.25rem;
 
-  .Done {
+  &.Done {
     color: #aaa;
+  }
+
+  &.CanDrop {
+    background-color: #ccc;
   }
 
   .Content {
