@@ -21,8 +21,14 @@ export async function listTodos() {
   };
 }
 
-export interface TodoPatch {
+export type TodoPatch = TodoStatusPatch | TodoExpandedPatch;
+type TodoStatusPatch = {
   status: 'TODO' | 'DONE';
+}
+type TodoExpandedPatch = {
+  children: {
+    expended: boolean;
+  }
 }
 
 export async function patchTodo(id: string, patch: TodoPatch) {

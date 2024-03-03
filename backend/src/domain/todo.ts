@@ -5,6 +5,11 @@ interface TextTodoContent {
   text: string;
 };
 
+interface TodoChildren {
+  list: Todo[];
+  expended: boolean;
+}
+
 export type TodoStatus = 'TODO' | 'DONE';
 
 export class Todo {
@@ -12,19 +17,22 @@ export class Todo {
   parent_id: string;
   status: TodoStatus;
   content: TodoContent;
-  todos: Todo[];
+  children: TodoChildren;
 
-  constructor(id: string, parentId: string, status: TodoStatus, content: TodoContent, todos: Todo[]) {
+  constructor(id: string, parentId: string, status: TodoStatus, content: TodoContent, children: TodoChildren) {
     this.id = id;
     this.parent_id = parentId;
     this.status = status;
     this.content = content;
-    this.todos = todos;
+    this.children = children;
   }
 }
 
 export type TodoPatch = {
-  status: TodoStatus;
+  status?: TodoStatus;
+  children?: {
+    expended: boolean;
+  }
 }
 
 export interface TodoRepo {

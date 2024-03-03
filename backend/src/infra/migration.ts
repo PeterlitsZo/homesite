@@ -76,11 +76,32 @@ export class Migration {
     if (await this.getVersion() === 1) {
       // VERSION 2:
       //
-      // * table `todo` will has a field `todos` (like table `todo_root` does).
+      // * Table `todo` has a field `todos` (like table `todo_root` does).
       //   It must be an array, which contains all ids of its sub todo records.
       await db.query(
         'UPDATE todo SET todos = []'
       );
+      await this.incrVersion();
+    }
+
+    if (await this.getVersion() === 2) {
+      // VERSION 3:
+      //
+      // * In tables `todo` and `todo_root`, the field children has replaced the
+      //   old field `todos`. It now holds an object instead of just an array of
+      //   IDs.
+      //
+      //   The `children` field includes two sub-fields:
+      //
+      //   * `list`, which functions similarly to the old todos field.
+      //   * `expanded`, a boolean value indicating whether the user wants it
+      //     expanded or not.
+      await db.query(`
+        UPDATE todo
+          SET children = { list: todos, expanded: true }, todos = NONE;
+        UPDATE todo_root
+          SET children = { list: todos, expanded: true }, todos = NONE;
+      `);
       await this.incrVersion();
     }
   }

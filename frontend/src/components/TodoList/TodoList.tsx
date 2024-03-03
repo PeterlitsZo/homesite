@@ -89,7 +89,7 @@ function TodoListInner(props: TodoListInnerProps) {
     const parentId = props.parentId;
     const currentTodo = props.todos![i];
     const currentId = currentTodo.id;
-    const hasChildren = currentTodo.todos.length !== 0;
+    const hasChildren = currentTodo.children.list.length !== 0;
 
     function ofTop(ratio: number) {
       return e.clientY < rect.top + rect.height * ratio;
@@ -138,6 +138,7 @@ function TodoListInner(props: TodoListInnerProps) {
           await deleteTodo(todo.id);
           props.refetch();
         };
+
         return (
           <>
             <DragAimBar
@@ -164,14 +165,21 @@ function TodoListInner(props: TodoListInnerProps) {
                 deleteMe={deleteThisTodo}
                 indent={props.indent}
                 canDrop={state.type === 'OK_TO_DROP' && state.aimParentId === todo.id && dragStatus() === 'OVER'}
+                refetch={props.refetch}
               />
             </div>
-            <TodoListInner
-              todos={todo.todos}
-              refetch={props.refetch}
-              parentId={todo.id}
-              indent={props.indent + 1}
-            />
+            {
+              todo.children.expended
+                ? (
+                  <TodoListInner
+                    todos={todo.children.list}
+                    refetch={props.refetch}
+                    parentId={todo.id}
+                    indent={props.indent + 1}
+                  />
+                )
+                : null
+            }
             { i() === todos().length - 1
               ? (
                   <DragAimBar

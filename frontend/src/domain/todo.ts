@@ -6,5 +6,8 @@ export interface Todo {
     type: 'text';
     text: string;
   }
-  todos: Todo[];
+  children: {
+    list: Todo[],
+    expended: boolean,
+  };
 }

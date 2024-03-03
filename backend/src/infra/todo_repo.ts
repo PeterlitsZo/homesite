@@ -9,7 +9,10 @@ type RawTodo = {
   parent_id: string;
   status: TodoStatus;
   content: string;
-  todos: string[];
+  children: {
+    list: string[];
+    expended: boolean;
+  }
 }
 
 async function toDomain(repo: TodoRepo, todo: RawTodo): Promise<Todo> {
@@ -18,7 +21,10 @@ async function toDomain(repo: TodoRepo, todo: RawTodo): Promise<Todo> {
     todo.parent_id,
     todo.status,
     { type: 'text', text: todo.content },
-    await repo.listTodosByIds(todo.todos),
+    {
+      list: await repo.listTodosByIds(todo.children.list),
+      expended: todo.children.expended,
+    }
   )
 }
 
@@ -73,10 +79,11 @@ export class TodoRepo implements DomainTodoRepo {
     const db = await this.getDb();
 
     const result = await db.query<[null, RawTodo[], number[]]>(`
-      LET $todos = (SELECT VALUE todos FROM todo_root WHERE id = todo_root:default)[0];
+      LET $todos = (SELECT VALUE children FROM todo_root WHERE id = todo_root:default)[0].list;
       SELECT * FROM todo WHERE id IN $todos;
       RETURN $todos;
     `)
+    console.log(result);
     let todoMap = new Map();
     for (let i = 0; i < result[1].length; i++) {
       todoMap.set(result[1][i].id, result[1][i]);
@@ -87,8 +94,8 @@ export class TodoRepo implements DomainTodoRepo {
   async addTodo(content: TodoContent, index?: number): Promise<Todo> {
     const db = await this.getDb();
 
-    const appendStat = 'array::append(todos, $created.id)';
-    const insertStat = 'array::insert(todos, $created.id, $index)';
+    const appendStat = 'array::append(children.list, $created.id)';
+    const insertStat = 'array::insert(children.list, $created.id, $index)';
 
     const [stat, binding] = (function () {
       if (index === undefined) {
@@ -103,9 +110,12 @@ export class TodoRepo implements DomainTodoRepo {
           SET parent_id = todo_root:default,
               content = $content,
               status = $status,
-              todos = []
+              children = {
+                list: [],
+                expanded: true,
+              }
       )[0];
-      UPDATE todo_root:default SET todos = ${stat};
+      UPDATE todo_root:default SET children.list = ${stat};
       RETURN $created;
     `, binding)
     return await toDomain(this, result[2]);
@@ -117,7 +127,7 @@ export class TodoRepo implements DomainTodoRepo {
     console.log({ parentId, id, index });
     await db.query(`
       UPDATE $parentId
-        SET todos = array::insert(todos, $id, $index);
+        SET children.list = array::insert(children.list, $id, $index);
       UPDATE $id
         SET parent_id = $parentId;
     `, { parentId, id, index });
@@ -133,7 +143,7 @@ export class TodoRepo implements DomainTodoRepo {
       let $todo = (SELECT * FROM todo WHERE id = $id)[0];
       DELETE FROM todo WHERE id = $id;
       UPDATE $todo.parent_id
-        SET todos = array::remove(todos, array::find_index(todos, $id));
+        SET children.list = array::remove(children.list, array::find_index(children.list, $id));
     `, { id });
   }
 
@@ -147,7 +157,7 @@ export class TodoRepo implements DomainTodoRepo {
 
     let result2 = -1;
     console.log(parentId, tableName, result);
-    result[0][0].todos.forEach((v, i) => {
+    result[0][0].children.list.forEach((v, i) => {
       if (v === id) {
         result2 = i;
       }
@@ -161,12 +171,12 @@ export class TodoRepo implements DomainTodoRepo {
     if (index !== undefined) {
       await db.query(`
         UPDATE $parentId
-          SET todos = array::remove(todos, $index)
+          SET children.list = array::remove(children.list, $index)
       `, { parentId, index });
     } else {
       await db.query(`
         UPDATE $parentId
-          SET todos = array::remove(todos, array::find_index(todos, $id));
+          SET children.list = array::remove(children.list, array::find_index(children.list, $id));
       `, { parentId, id });
     }
   }
@@ -176,7 +186,7 @@ export class TodoRepo implements DomainTodoRepo {
 
     const result = await db.query<[RawTodo[]]>(`
       UPDATE todo
-        SET status = $patch.status
+        MERGE $patch
         WHERE id = $id;
     `, { id, patch });
     return await toDomain(this, result[0][0]);

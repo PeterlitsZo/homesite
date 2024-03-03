@@ -109,7 +109,10 @@ app.delete('/api/v1/todos/:id', async (c) => {
 
 app.patch('/api/v1/todos/:id', async (c) => {
   const todoPatchSchema = z.object({
-    status: z.union([z.literal('TODO'), z.literal('DONE')]),
+    status: z.union([z.literal('TODO'), z.literal('DONE')]).optional(),
+    children: z.object({
+      expended: z.boolean(),
+    }).optional(),
   });
 
   let todoPatch = await safeGetJsonBody(c, todoPatchSchema);
