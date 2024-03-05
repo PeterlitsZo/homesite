@@ -3,8 +3,8 @@
 import { $ } from "bun";
 import { program } from "commander";
 
-async function runPostgresInDocker() {
-  const containerName = 'homesite_postgres';
+async function runSurrealdbInDocker() {
+  const containerName = 'homesite_surreal';
 
   const names = await $`
     docker ps -f "name=${containerName}" --format '{{.Names}}'
@@ -17,37 +17,16 @@ async function runPostgresInDocker() {
   await $`
     docker run --rm \
       --name ${containerName} \
-      -e POSTGRES_PASSWORD=${Bun.env.DATABASE_PASSWORD} \
-      -v ${Bun.env.DATABASE_VOLUME}:/var/lib/postgresql/data \
-      -p ${Bun.env.DATABASE_PORT}:5432 \
-      -d \
-      postgres
+      -p 8000:8000 \
+      surrealdb/surrealdb:latest start --auth --user ${Bun.env.SURREAL_USERNAME} --pass ${Bun.env.SURREAL_PASSWORD}
   `
-}
-
-async function addDbMigrate(name: string) {
-  await $`bun x prisma migrate dev --name ${name}`
-}
-
-async function deployDbMigrate() {
-  await $`bun x prisma migrate deploy`
 }
 
 let devCommand = program.command('dev');
 devCommand
-  .command('run-postgres-in-docker')
+  .command('run-surrealdb-in-docker')
   .action(async () => {
-    await runPostgresInDocker();
+    await runSurrealdbInDocker();
   });
-devCommand
-  .command('add-db-migrate <name>')
-  .action(async (name) => {
-    await addDbMigrate(name);
-  })
-devCommand
-  .command('deploy-db-migrate')
-  .action(async () => {
-    await deployDbMigrate();
-  })
 
 program.parse(Bun.argv);
