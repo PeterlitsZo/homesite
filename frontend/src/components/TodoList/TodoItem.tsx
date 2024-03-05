@@ -1,13 +1,14 @@
 "use client"; // TODO (@PeterlitsZo) Check why we need this.
 
-import { CheckCircle, Circle, Trash2 } from 'lucide-solid';
+import { createSignal } from 'solid-js';
 
 import { Todo } from "~/domain/todo";
+import { TodoPatch, deleteTodo, patchTodo } from '~/requests';
+
+import { CheckCircle, Circle, Trash2 } from '../Icons';
+import IconButton from '../IconButton';
 
 import styles from './TodoItem.module.scss';
-import { TodoPatch, deleteTodo, patchTodo } from '~/requests';
-import { createSignal } from 'solid-js';
-import IconButton from '../IconButton';
 
 interface TodoProps {
   todo: Todo;
