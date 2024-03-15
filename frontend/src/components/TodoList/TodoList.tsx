@@ -5,10 +5,14 @@ import { createEffect, createResource, createSignal, from } from "solid-js";
 import { deleteTodo, listTodos, reorderTodo } from "~/requests";
 import { Todo } from "~/domain/todo";
 
+import Tree from "~/components/Tree";
+
 import { TodoItem } from "./TodoItem";
 import { TodoMaker } from "./TodoMaker";
-import styles from "./TodoList.module.scss";
 import { DragAimBar } from "./DragAimBar";
+
+import styles from "./TodoList.module.scss";
+import { Item, ItemId } from "../Tree/TreeItem";
 
 interface TodoListProps {
   class?: string;
@@ -117,6 +121,20 @@ export function TodoList(props: TodoListProps) {
           );
         })}
       </div>
+      <Tree
+        data={{
+          'foo': { id: 'foo', data: 'foo', children: ['baz'] },
+          'foo2': { id: 'foo2', data: 'foo2', children: [] },
+          'bar': { id: 'bar', data: 'bar', children: [] },
+          'bar2': { id: 'bar2', data: 'bar2', children: [] },
+          'baz': { id: 'baz', data: 'baz', children: [] }
+        }}
+        rootList={['foo', 'bar', 'foo2', 'bar2']}
+        render={(item, props) => (
+          <div>ITEM: {item.data} PROPS: {JSON.stringify(props)}</div>
+        )}
+        indentWidth="1.5rem"
+      />
       <TodoMaker setTodoList={setTodoList} />
     </div>
   );
