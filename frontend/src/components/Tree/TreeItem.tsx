@@ -11,21 +11,18 @@ export interface Item<T> {
   id: ItemId;
   data: T;
   children: Array<ItemId>;
+  status: ItemState;
 }
 
-export interface ItemMaybenotData<T> {
-  id: ItemId;
-  data?: T;
-  children: Array<ItemId>;
-}
-
-export interface ItemMaybenotData<T> {
-
-}
+export type ItemData<T> =
+  | { type: 'normal' } & Item<T>
+  | { type: 'fake-root' } & Pick<Item<T>, 'id' | 'children'>;
 
 export type ItemState =
   | 'STATIC'
   | 'SNAPSHOT'
+  | 'SYNCED'
+  | 'SYNCING'
   ;
 
 export interface ItemRenderProps {
@@ -35,7 +32,7 @@ export interface ItemRenderProps {
 }
 
 interface TreeItemProps<T> {
-  data: Item<T>;
+  id: ItemId;
   indent: number;
   index: number;
   indentWidth: string;
@@ -46,16 +43,19 @@ interface TreeItemProps<T> {
 export function TreeItem<T>(props: TreeItemProps<T>) {
   const [tree, setTree] = useTree<T>()!;
 
+  const data = () => {
+    const data = tree.data.get(props.id)!;
+    if (data.type === 'normal') {
+      return data;
+    }
+    throw new Error('the TreeItem should be a normal node rather than fake-root');
+  }
+
   const [isHover, setHover] = createSignal(false);
-  const [isDargging, setDargging] = createSignal(false);
   const [hit, setHit_TODO_TO_REMOVE] = createSignal('');
 
   const state = (): ItemState => {
-    if (isDargging()) {
-      return 'SNAPSHOT';
-    } else {
-      return 'STATIC';
-    }
+    return data().status;
   };
 
   const dragOverHandler = (event: DragEvent) => {
@@ -73,10 +73,10 @@ export function TreeItem<T>(props: TreeItemProps<T>) {
 
     if (ofTop(8)) {
       setHit_TODO_TO_REMOVE('of top');
-      setTree.moveTo(tree.parents.get(props.data.id)!, props.index);
+      setTree.moveTo(tree.parents.get(props.id)!, props.index);
     } else if (ofBottom(8)) {
       setHit_TODO_TO_REMOVE('of bottom');
-      setTree.moveTo(tree.parents.get(props.data.id)!, props.index + 1);
+      setTree.moveTo(tree.parents.get(props.id)!, props.index + 1);
     } else {
       setHit_TODO_TO_REMOVE("");
     }
@@ -87,12 +87,10 @@ export function TreeItem<T>(props: TreeItemProps<T>) {
   };
 
   const dragStartHandler = (event: DragEvent) => {
-    setDargging(true);
-    setTree.startDragging(props.data.id);
+    setTree.startDragging(props.id);
   };
 
   const dragEndHandler = (event: DragEvent) => {
-    setDargging(false);
     setTree.endDragging();
   }
 
@@ -109,7 +107,7 @@ export function TreeItem<T>(props: TreeItemProps<T>) {
       onDragLeave={dragLeaveHandler}
     >
       {
-        props.render(props.data, {
+        props.render(data(), {
           hover: isHover(),
           state: state(),
           hit: hit(),

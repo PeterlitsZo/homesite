@@ -1,17 +1,17 @@
 import { For, JSX, children, createContext, useContext } from "solid-js";
 
-import { Item, ItemId, ItemMaybenotData, ItemRenderProps, TreeItem, treeRoot } from "./TreeItem";
+import { Item, ItemId, ItemData, ItemRenderProps, TreeItem, treeRoot } from "./TreeItem";
 import { createStore } from "solid-js/store";
 
 interface TreeProps<T> {
-  data: Record<Exclude<ItemId, typeof treeRoot>, Item<T>>;
+  data: Record<Exclude<ItemId, typeof treeRoot>, Omit<Item<T>, 'status'>>;
   rootList: Array<ItemId>;
   render: (item: Item<T>, props: ItemRenderProps) => JSX.Element;
   indentWidth: string;
 }
 
 type Tree<T> = {
-  data: Map<ItemId, ItemMaybenotData<T>>;
+  data: Map<ItemId, ItemData<T>>;
 
   /** If parents[id] is undefined, it means that the item that id points has no
    *  parent.   */
@@ -41,15 +41,22 @@ export function useTree<T>() {
 }
 
 export function Tree<T>(props: TreeProps<T>) {
+  const data = new Map() as Map<ItemId, ItemData<T>>;
+  for (const id in props.data) {
+    data.set(id, {
+      ...props.data[id],
+      status: 'SYNCED',
+      type: 'normal',
+    });
+  }
   const tree = {
     id: treeRoot as typeof treeRoot,
     children: props.rootList,
   };
-  const data = new Map() as Map<ItemId, ItemMaybenotData<T>>;
-  for (const id in props.data) {
-    data.set(id, props.data[id]);
-  }
-  data.set(treeRoot, tree);
+  data.set(treeRoot, {
+    ...tree,
+    type: 'fake-root',
+  });
 
   // Get the map from items' ID to thier parents.
   const parents = new Map() as Map<ItemId, ItemId>;
